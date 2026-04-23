@@ -43,21 +43,63 @@ export function classifyHand(landmarks) {
   const middle = isExtended(lm, FINGER.MIDDLE);
   const ring   = isExtended(lm, FINGER.RING);
   const pinky  = isExtended(lm, FINGER.PINKY);
+  // 🔥 ADD THIS HERE
+const qualityScore =
+  (thumb ? 1 : 0) +
+  (index ? 1 : 0) +
+  (middle ? 1 : 0) +
+  (ring ? 1 : 0) +
+  (pinky ? 1 : 0);
+
+function getConfidence() {
+  return Math.min(0.6 + qualityScore * 0.07, 0.95);
+}
 
   const extCount = [index, middle, ring, pinky].filter(Boolean).length;
 
   // ---- Alphabet ----
-  if (!index && !middle && !ring && !pinky && !thumb) return { sign: 'S', confidence: 0.88 };
-  if (!index && !middle && !ring && !pinky &&  thumb) return { sign: 'A', confidence: 0.85 };
-  if ( index &&  middle &&  ring &&  pinky && !thumb) return { sign: 'B', confidence: 0.90 };
-  if ( index && !middle && !ring && !pinky &&  thumb) return { sign: 'L', confidence: 0.87 };
-  if ( index && !middle && !ring && !pinky && !thumb) return { sign: '1', confidence: 0.85 };
-  if ( index &&  middle && !ring && !pinky && !thumb) return { sign: '2', confidence: 0.88 };
-  if ( index &&  middle &&  ring && !pinky && !thumb) return { sign: 'W', confidence: 0.82 };
-  if (!index && !middle && !ring &&  pinky && !thumb) return { sign: 'I', confidence: 0.86 };
-  if (!index && !middle && !ring &&  pinky &&  thumb) return { sign: 'Y', confidence: 0.84 };
-  if ( index &&  middle &&  ring &&  pinky &&  thumb) return { sign: '5', confidence: 0.92 };
-  if (!index && !middle && !ring && !pinky && !thumb) return { sign: 'E', confidence: 0.75 };
+  // ---- Alphabet ----
+
+// S
+if (!index && !middle && !ring && !pinky && !thumb)
+  return { sign: 'S', confidence: getConfidence() };
+
+// A
+if (!index && !middle && !ring && !pinky && thumb)
+  return { sign: 'A', confidence: getConfidence() };
+
+// B
+if (index && middle && ring && pinky && !thumb)
+  return { sign: 'B', confidence: getConfidence() };
+
+// L
+if (index && !middle && !ring && !pinky && thumb)
+  return { sign: 'L', confidence: getConfidence() };
+
+// 1
+if (index && !middle && !ring && !pinky && !thumb)
+  return { sign: '1', confidence: getConfidence() };
+
+// 2
+if (index && middle && !ring && !pinky && !thumb)
+  return { sign: '2', confidence: getConfidence() };
+
+// W
+if (index && middle && ring && !pinky && !thumb)
+  return { sign: 'W', confidence: getConfidence() };
+
+// I
+if (!index && !middle && !ring && pinky && !thumb)
+  return { sign: 'I', confidence: getConfidence() };
+
+// Y
+if (!index && !middle && !ring && pinky && thumb)
+  return { sign: 'Y', confidence: getConfidence() };
+
+// 5
+if (index && middle && ring && pinky && thumb)
+  return { sign: '5', confidence: getConfidence() };
+
 
   // Thumb + index touching → F or OK
   const thumbIndexClose =
