@@ -18,6 +18,12 @@ let lastTriggerTime = 0;
 
 const WINDOW_SIZE = 12; // frames to average for stability
 let predictionWindow = [];
+let lastAcceptedSign = '';
+let lastAcceptedAt = 0;
+
+function clamp01(v) {
+  return Math.max(0, Math.min(1, v));
+}
 
 /**
  * @param {HTMLVideoElement} videoEl
@@ -89,22 +95,17 @@ function handleSign(sign, confidence) {
 
   const percent = Math.round(confidence * 100);
 
-  // ✅ Step 6: Always show confidence
+  // Always show confidence
   confBar.style.width = percent + '%';
   confVal.textContent = percent + '%';
 
-  // ✅ Step 2 + 3 + 5 (MAIN LOGIC)
-  if (confidence < 0.5) {
+  if (confidence < 0.55) {
     detectedEl.textContent = '⚠️ Sign unclear — please repeat';
-    detectedEl.style.fontSize = '1.2rem';
-
-    // 🔥 Visual alert
+    detectedEl.classList.add('unclear');
     videoContainer.classList.add('unclear-alert');
-
   } else {
     detectedEl.textContent = sign;
-    detectedEl.style.fontSize = '2.5rem';
-
+    detectedEl.classList.remove('unclear');
     videoContainer.classList.remove('unclear-alert');
   }
 }
@@ -115,8 +116,8 @@ export async function startCamera(videoEl, canvasEl, callbacks = {}) {
     hands.setOptions({
       maxNumHands: 2,
       modelComplexity: 1,
-      minDetectionConfidence: 0.75,
-      minTrackingConfidence: 0.65,
+      minDetectionConfidence: 0.65,
+      minTrackingConfidence: 0.6,
     });
 
     hands.onResults(results => onResults(results, canvasEl, callbacks));
@@ -170,6 +171,8 @@ export function stopCamera(videoEl) {
   stream = null;
   if (videoEl) videoEl.srcObject = null;
   predictionWindow = [];
+  lastAcceptedSign = '';
+  lastAcceptedAt = 0;
 }
 function onResults(results, canvasEl, callbacks) {
   const ctx = canvasEl.getContext('2d');
@@ -182,22 +185,40 @@ function onResults(results, canvasEl, callbacks) {
   callbacks.onHandCount?.(handCount);
 
   if (handCount > 0) {
+    let bestPrediction = null;
     results.multiHandLandmarks.forEach((landmarks) => {
-
-      // ✅ STEP 1: get prediction
       const prediction = classifyHand(landmarks);
-
-      if (prediction) {
-        const { sign, confidence } = prediction;
-
-        // ✅ STEP 2,3,5: threshold logic
-        handleSign(sign, confidence);
-
-        // keep existing system
-        callbacks.onSign?.(sign, confidence);
+      if (!prediction) return;
+      if (!bestPrediction || prediction.confidence > bestPrediction.confidence) {
+        bestPrediction = prediction;
       }
-
     });
+
+    if (bestPrediction) {
+      predictionWindow.push(bestPrediction);
+      if (predictionWindow.length > WINDOW_SIZE) predictionWindow.shift();
+
+      const stable = stableClassify(predictionWindow, 0.58);
+      if (stable) {
+        const combinedConfidence = clamp01((stable.avgConfidence * 0.7) + (stable.support * 0.3));
+        handleSign(stable.sign, combinedConfidence);
+
+        const now = Date.now();
+        if (!(stable.sign === lastAcceptedSign && now - lastAcceptedAt < 700)) {
+          callbacks.onSign?.(stable.sign, combinedConfidence);
+          lastAcceptedSign = stable.sign;
+          lastAcceptedAt = now;
+        }
+      } else {
+        handleSign(bestPrediction.sign, bestPrediction.confidence * 0.6);
+      }
+    } else {
+      predictionWindow = [];
+      handleSign('—', 0);
+    }
+  } else {
+    predictionWindow = [];
+    handleSign('—', 0);
   }
 
   ctx.restore();
