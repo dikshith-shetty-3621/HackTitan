@@ -1,4 +1,3 @@
-<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 11 PM" src="https://github.com/user-attachments/assets/5e0842db-8628-4016-958e-eb2dfddd5b22" /># OmniSign 🤲
 
 > **Sign Every Word.** — Real-time ASL to speech, bidirectional, in the browser.
 
@@ -101,11 +100,16 @@ Instead of firing on every frame (which causes rapid-fire junk output), OmniSign
 ---
 
 ## 📸 Screenshots
+<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 11 PM" src="https://github.com/user-attachments/assets/5e0842db-8628-4016-958e-eb2dfddd5b22" /># OmniSign 🤲
+Letters into Speech
 
 ![Uploading Screenshot 2026-04-23 at 4.39.11 PM.png
 <img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 22 PM" src="https://github.com/user-attachments/assets/26ccfc8e-ba7d-467c-b578-45d3048e8c22" />
+Numbers into speech 
 <img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 30 PM" src="https://github.com/user-attachments/assets/26925d08-cd1f-4e37-9ab5-53dba787ef0e" />
+Both hands usable simultaneously
 <img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 43 PM" src="https://github.com/user-attachments/assets/130aeb69-5365-41c6-a08b-c184f1b6f72a" />
+user can learn american sign language in our Website As well
 
 
 
