@@ -12,6 +12,10 @@ const FINGER = {
   PINKY:  { tip: 20, pip: 19, mcp: 18, base: 17 },
 };
 
+function clamp01(v) {
+  return Math.max(0, Math.min(1, v));
+}
+
 /**
  * Returns true if the fingertip is above its MCP (finger is extended).
  * "above" = lower Y value in image space.
@@ -35,79 +39,141 @@ function thumbExtended(lm) {
  * @returns {{ sign: string, confidence: number } | null}
  */
 export function classifyHand(landmarks) {
+  switch (predictedClass) {
+    case 0: return "A";
+    case 1: return "B";
+    case 2: return "C";
+    case 3: return "D";
+    case 4: return "E";
+    case 5: return "F";
+    case 6: return "G";
+    case 7: return "H";
+    case 8: return "I";
+    case 9: return "J";
+    case 10: return "K";
+    case 11: return "L";
+    case 12: return "M";
+    case 13: return "N";
+    case 14: return "O";
+    case 15: return "P";
+    case 16: return "Q";
+    case 17: return "R";
+    case 18: return "S";
+    case 19: return "T";
+    case 20: return "U";
+    case 21: return "V";
+    case 22: return "W";
+    case 23: return "X";
+    case 24: return "Y";
+    case 25: return "Z";
+    default: return "Unknown";
+  }
   if (!landmarks || landmarks.length < 21) return null;
 
   const lm = landmarks;
-  const thumb  = thumbExtended(lm);
-  const index  = isExtended(lm, FINGER.INDEX);
-  const middle = isExtended(lm, FINGER.MIDDLE);
-  const ring   = isExtended(lm, FINGER.RING);
-  const pinky  = isExtended(lm, FINGER.PINKY);
-  // 🔥 ADD THIS HERE
-const qualityScore =
-  (thumb ? 1 : 0) +
-  (index ? 1 : 0) +
-  (middle ? 1 : 0) +
-  (ring ? 1 : 0) +
-  (pinky ? 1 : 0);
 
-function getConfidence() {
-  return Math.min(0.6 + qualityScore * 0.07, 0.95);
-}
+  function distance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
 
-  const extCount = [index, middle, ring, pinky].filter(Boolean).length;
+  function fingerOpenScore(tip, pip, mcp) {
+    const palm = distance(lm[0], lm[9]) + 1e-6;
+    const tipLift = (lm[mcp].y - lm[tip].y) / palm;
+    const pipLift = (lm[mcp].y - lm[pip].y) / palm;
+    const spread = distance(lm[tip], lm[mcp]) / palm;
+    return clamp01(0.5 * tipLift + 0.25 * pipLift + 0.25 * spread);
+  }
 
-  // ---- Alphabet ----
-  // ---- Alphabet ----
+  function thumbOpenScore() {
+    const palm = distance(lm[0], lm[9]) + 1e-6;
+    const thumbReach = distance(lm[4], lm[5]) / palm;
+    const thumbSpread = Math.abs(lm[4].x - lm[2].x) / (Math.abs(lm[5].x - lm[17].x) + 1e-6);
+    return clamp01(0.55 * thumbReach + 0.45 * thumbSpread);
+  }
 
-// S
-if (!index && !middle && !ring && !pinky && !thumb)
-  return { sign: 'S', confidence: getConfidence() };
+  const thumbScore = thumbOpenScore();
+  const indexScore = fingerOpenScore(8, 7, 5);
+  const middleScore = fingerOpenScore(12, 11, 9);
+  const ringScore = fingerOpenScore(16, 15, 13);
+  const pinkyScore = fingerOpenScore(20, 19, 17);
 
-// A
-if (!index && !middle && !ring && !pinky && thumb)
-  return { sign: 'A', confidence: getConfidence() };
+  const fingerScores = [thumbScore, indexScore, middleScore, ringScore, pinkyScore];
+  const palm = distance(lm[0], lm[9]) + 1e-6;
+  const thumbIndexDist = distance(lm[4], lm[8]) / palm;
+  const thumbMiddleDist = distance(lm[4], lm[12]) / palm;
+  const middleRingClosed = middleScore < 0.45 && ringScore < 0.45 && pinkyScore < 0.45;
+  const indexClearlyUp = indexScore > 0.62;
 
-// B
-if (index && middle && ring && pinky && !thumb)
-  return { sign: 'B', confidence: getConfidence() };
+  // Explicit D detector: index up, others curled, thumb near middle/index cluster.
+  if (indexClearlyUp && middleRingClosed && thumbMiddleDist < 0.72 && thumbIndexDist < 0.95) {
+    const dConfidence = clamp01(0.64 + 0.2 * clamp01(indexScore) + 0.16 * clamp01(1 - ((middleScore + ringScore + pinkyScore) / 3)));
+    return { sign: 'D', confidence: dConfidence };
+  }
+  const fingerCurveScores = [indexScore, middleScore, ringScore, pinkyScore];
+  const avgFingerOpen = (indexScore + middleScore + ringScore + pinkyScore) / 4;
 
-// L
-if (index && !middle && !ring && !pinky && thumb)
-  return { sign: 'L', confidence: getConfidence() };
+  // Explicit C detector: allow broader curved-hand variance.
+  const allCurvedButNotFlat = fingerCurveScores.every(v => v > 0.12 && v < 0.95);
+  const curvedCount = fingerCurveScores.filter(v => v > 0.2 && v < 0.82).length;
+  const thumbForC = thumbScore > 0.22 && thumbScore < 0.96;
+  const cGap = thumbIndexDist > 0.3 && thumbIndexDist < 1.4;
+  if (allCurvedButNotFlat && curvedCount >= 3 && thumbForC && cGap && avgFingerOpen > 0.24) {
+    const curveCenter = 1 - (Math.abs(indexScore - 0.48) + Math.abs(middleScore - 0.48) + Math.abs(ringScore - 0.48) + Math.abs(pinkyScore - 0.48)) / 2;
+    const cConfidence = clamp01(0.58 + 0.3 * clamp01(curveCenter) + 0.12 * clamp01(thumbScore));
+    return { sign: 'C', confidence: cConfidence };
+  }
 
-// 1
-if (index && !middle && !ring && !pinky && !thumb)
-  return { sign: '1', confidence: getConfidence() };
+  function matchScore(pattern) {
+    const scores = [];
+    for (let i = 0; i < 5; i++) {
+      const expected = pattern[i];
+      if (expected === null) continue;
+      const value = fingerScores[i];
+      scores.push(expected ? value : (1 - value));
+    }
+    if (!scores.length) return 0;
+    return scores.reduce((a, b) => a + b, 0) / scores.length;
+  }
 
-// 2
-if (index && middle && !ring && !pinky && !thumb)
-  return { sign: '2', confidence: getConfidence() };
+  const rules = [
+    { sign: 'S', pattern: [false, false, false, false, false] },
+    { sign: 'A', pattern: [true, false, false, false, false] },
+    { sign: 'B', pattern: [false, true, true, true, true] },
+    { sign: 'D', pattern: [true, true, false, false, false] },
+    { sign: 'L', pattern: [true, true, false, false, false] },
+    { sign: '1', pattern: [false, true, false, false, false] },
+    { sign: '2', pattern: [false, true, true, false, false] },
+    { sign: 'W', pattern: [false, true, true, true, false] },
+    { sign: 'I', pattern: [false, false, false, false, true] },
+    { sign: 'Y', pattern: [true, false, false, false, true] },
+    { sign: '5', pattern: [true, true, true, true, true] },
+  ];
 
-// W
-if (index && middle && ring && !pinky && !thumb)
-  return { sign: 'W', confidence: getConfidence() };
+  const ranked = rules
+    .map(rule => ({ sign: rule.sign, score: matchScore(rule.pattern) }))
+    .sort((a, b) => b.score - a.score);
 
-// I
-if (!index && !middle && !ring && pinky && !thumb)
-  return { sign: 'I', confidence: getConfidence() };
+  const best = ranked[0];
+  const second = ranked[1];
+  const separation = best.score - second.score;
+  const confidence = clamp01(0.8 * best.score + 0.2 * clamp01(separation * 2));
 
-// Y
-if (!index && !middle && !ring && pinky && thumb)
-  return { sign: 'Y', confidence: getConfidence() };
+  if (best.sign === 'A' && avgFingerOpen > 0.22) {
+    return null;
+  }
 
-// 5
-if (index && middle && ring && pinky && thumb)
-  return { sign: '5', confidence: getConfidence() };
+  if (best.score >= 0.62) {
+    return { sign: best.sign, confidence };
+  }
 
+  // F or OK: Thumb + index touching, other 3 extended
+  if (thumbIndexDist < 0.38 && middleScore > 0.55 && ringScore > 0.55 && pinkyScore > 0.55) {
+    const fConfidence = clamp01((middleScore + ringScore + pinkyScore + (1 - indexScore)) / 4);
+    return { sign: 'F', confidence: Math.max(0.62, fConfidence) };
+  }
 
-  // Thumb + index touching → F or OK
-  const thumbIndexClose =
-    Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) < 0.05;
-  if (thumbIndexClose && middle && ring && pinky)
-    return { sign: 'F', confidence: 0.80 };
-
-  return { sign: '?', confidence: 0.4 };
+  // No match
+  return null;
 }
 
 /**
@@ -115,10 +181,29 @@ if (index && middle && ring && pinky && thumb)
  * @param {string[]} window - last N sign predictions
  * @returns {string | null} - majority sign or null if no clear winner
  */
-export function stableClassify(window, threshold = 0.6) {
+export function stableClassify(window, threshold = 0.58) {
   if (!window.length) return null;
   const counts = {};
-  window.forEach(s => { counts[s] = (counts[s] || 0) + 1; });
-  const [top, count] = Object.entries(counts).sort((a,b) => b[1]-a[1])[0];
-  return count / window.length >= threshold ? top : null;
+  const confidenceSums = {};
+
+  window.forEach(item => {
+    const sign = typeof item === 'string' ? item : item?.sign;
+    const confidence = typeof item === 'string' ? 0.6 : (item?.confidence ?? 0.6);
+    if (!sign) return;
+    counts[sign] = (counts[sign] || 0) + 1;
+    confidenceSums[sign] = (confidenceSums[sign] || 0) + confidence;
+  });
+
+  const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  if (!ranked.length) return null;
+
+  const [topSign, topCount] = ranked[0];
+  const support = topCount / window.length;
+  if (support < threshold) return null;
+
+  return {
+    sign: topSign,
+    support,
+    avgConfidence: confidenceSums[topSign] / topCount,
+  };
 }
