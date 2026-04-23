@@ -844,6 +844,9 @@
         <div style="font-size:0.7rem;color:var(--muted);margin-top:0.4rem">
           Higher = more stable (easier to switch signs)
         </div>
+        <div style="font-size:0.7rem;color:var(--neon);margin-top:0.45rem">
+          Right hand: alphabets | Left hand: numbers
+        </div>
       </div>
 
       <!-- Phrase Builder -->
@@ -1042,7 +1045,7 @@ const ASL_SIGNS = {
     { letter: 'B', emoji: '🖐️', label: 'Flat hand, thumb across', tips: ['Hold all 4 fingers straight up', 'Fold thumb across palm', 'Keep fingers together', 'Palm faces out'], difficulty: 'easy' },
     { letter: 'C', emoji: '🤙', label: 'Curved C shape', tips: ['Curve all fingers and thumb', 'Form a C shape', 'Thumb and fingers face each other', 'About 2 inches apart'], difficulty: 'easy' },
     { letter: 'D', emoji: '👆', label: 'Index up, others curved', tips: ['Point index finger up', 'Curl other fingers to touch thumb', 'Thumb touches middle finger tip', 'Looks like a D shape'], difficulty: 'medium' },
-    { letter: 'E', emoji: '🤞', label: 'Fingers bent, thumb under', tips: ['Curl all fingers down', 'Tuck thumb under fingers', 'Fingers touch the pad of the thumb', 'Palm faces out'], difficulty: 'medium' },
+    { letter: 'E', emoji: '🤞', label: 'Fingers bent, thumb under', tips: ['Curl index and middle fingers', 'Tuck thumb under fingers', 'Fingers touch the pad of the thumb', 'Palm faces out'], difficulty: 'medium' },
     { letter: 'F', emoji: '👌', label: 'OK shape with index-thumb', tips: ['Touch index finger to thumb', 'Hold other 3 fingers up straight', 'Palm faces forward', 'Circle should be clear'], difficulty: 'easy' },
     { letter: 'G', emoji: '👉', label: 'Index and thumb point sideways', tips: ['Point index finger sideways', 'Extend thumb sideways too', 'Other fingers curl in', 'Like pointing to the side'], difficulty: 'easy' },
     { letter: 'H', emoji: '✌️', label: 'Two fingers pointing sideways', tips: ['Extend index and middle finger', 'Point them sideways', 'Thumb tucks in', 'Other fingers curl'], difficulty: 'easy' },
@@ -1075,6 +1078,47 @@ const ASL_SIGNS = {
   ]
 };
 
+const EXTRA_ALPHABET_SIGNS = [
+  { letter: 'M', emoji: '✊', label: 'Thumb under three fingers', tips: ['Make a fist', 'Place thumb under index, middle, and ring fingers', 'Pinky stays outside', 'Palm faces front'], difficulty: 'hard' },
+  { letter: 'N', emoji: '✊', label: 'Thumb under two fingers', tips: ['Make a fist', 'Place thumb under index and middle fingers', 'Ring and pinky wrap over', 'Keep hand compact'], difficulty: 'hard' },
+  { letter: 'O', emoji: '👌', label: 'Round O shape', tips: ['Touch fingertips to thumb', 'Form a clean round circle', 'Keep hand relaxed', 'Face palm forward'], difficulty: 'easy' },
+  { letter: 'P', emoji: '👇', label: 'K shape angled down', tips: ['Start with K handshape', 'Tilt hand downward', 'Index and middle stay split', 'Thumb touches middle'], difficulty: 'medium' },
+  { letter: 'Q', emoji: '👇', label: 'G shape angled down', tips: ['Start with G handshape', 'Point index and thumb down', 'Other fingers curled', 'Small controlled movement'], difficulty: 'medium' },
+  { letter: 'R', emoji: '🤞', label: 'Crossed index and middle', tips: ['Raise index and middle fingers', 'Cross index over middle', 'Other fingers closed', 'Palm faces forward'], difficulty: 'medium' },
+  { letter: 'T', emoji: '✊', label: 'Thumb between index and middle', tips: ['Make a fist', 'Place thumb between index and middle fingers', 'Keep fingers curled tight', 'Palm out'], difficulty: 'medium' },
+  { letter: 'U', emoji: '✌️', label: 'Two fingers together', tips: ['Raise index and middle fingers', 'Keep them together', 'Other fingers folded', 'Palm faces forward'], difficulty: 'easy' },
+  { letter: 'V', emoji: '✌️', label: 'Peace sign shape', tips: ['Raise index and middle fingers', 'Spread them apart', 'Other fingers folded', 'Palm out'], difficulty: 'easy' },
+  { letter: 'X', emoji: '☝️', label: 'Bent index hook', tips: ['Raise index finger', 'Bend it into a hook', 'Other fingers closed', 'Thumb across fist'], difficulty: 'medium' },
+  { letter: 'Z', emoji: '☝️', label: 'Draw Z in air', tips: ['Point index finger', 'Draw letter Z in the air', 'Use clear motion', 'Keep other fingers closed'], difficulty: 'hard' }
+];
+
+const EXTRA_NUMBER_SIGNS = [
+  { letter: '0', emoji: '👌', label: 'Round zero shape', tips: ['Touch fingertips to thumb', 'Create a clean O/0 shape', 'Keep hand steady', 'Palm forward'], difficulty: 'easy' },
+  { letter: '7', emoji: '🤟', label: 'Thumb touches ring finger', tips: ['Extend index, middle, and pinky', 'Touch thumb to ring fingertip', 'Keep shape steady', 'Palm out'], difficulty: 'medium' },
+  { letter: '8', emoji: '🤟', label: 'Thumb touches middle finger', tips: ['Extend index, ring, and pinky', 'Touch thumb to middle fingertip', 'Keep fingers distinct', 'Palm out'], difficulty: 'medium' },
+  { letter: '9', emoji: '👌', label: 'Thumb touches index finger', tips: ['Touch thumb and index fingertips', 'Keep other fingers extended', 'Small circle near index', 'Palm out'], difficulty: 'easy' },
+  { letter: '10', emoji: '👍', label: 'Thumb up with fist', tips: ['Close fist', 'Extend thumb up', 'Optional small wrist shake', 'Keep arm relaxed'], difficulty: 'easy' }
+];
+
+ASL_SIGNS.alphabet.push(...EXTRA_ALPHABET_SIGNS);
+ASL_SIGNS.numbers.push(...EXTRA_NUMBER_SIGNS);
+
+function attachHandGuidance(sign, defaultHand) {
+  const handText = defaultHand === 'Right' ? 'Use RIGHT hand for this sign.' :
+    defaultHand === 'Left' ? 'Use LEFT hand for this sign.' :
+    'Can be signed with either hand.';
+  return {
+    ...sign,
+    hand: defaultHand,
+    tips: [handText, ...sign.tips]
+  };
+}
+
+ASL_SIGNS.alphabet = ASL_SIGNS.alphabet.map(sign => attachHandGuidance(sign, 'Right'));
+ASL_SIGNS.numbers = ASL_SIGNS.numbers.map(sign => attachHandGuidance(sign, 'Left'));
+ASL_SIGNS.greetings = ASL_SIGNS.greetings.map(sign => attachHandGuidance(sign, 'Either'));
+ASL_SIGNS.common = ASL_SIGNS.common.map(sign => attachHandGuidance(sign, 'Either'));
+
 // Flatten all signs
 const ALL_SIGNS = [];
 Object.keys(ASL_SIGNS).forEach(cat => {
@@ -1101,6 +1145,7 @@ function renderSigns() {
       <span class="sign-emoji">${sign.emoji}</span>
       <span class="sign-letter">${sign.letter}</span>
       <span class="sign-label">${sign.label}</span>
+      <span class="sign-label" style="font-size:0.68rem;color:var(--neon);margin-top:0.2rem">${sign.hand} hand</span>
     </div>
   `).join('');
 }
@@ -1122,7 +1167,7 @@ function openSignModal(index) {
   currentSignIndex = index;
   const sign = ALL_SIGNS[index];
   document.getElementById('modal-emoji').textContent = sign.emoji;
-  document.getElementById('modal-letter').textContent = sign.letter;
+  document.getElementById('modal-letter').textContent = `${sign.letter} (${sign.hand} hand)`;
   document.getElementById('modal-tips').innerHTML = sign.tips.map(t => `
     <div class="modal-tip">
       <span class="tip-icon">→</span>
@@ -1265,12 +1310,54 @@ let fpsLastTime = Date.now();
 let currentFPS = 0;
 let stableSign = '';
 let stableStart = 0;
+let predictionWindow = [];
+let lastAcceptedSign = '';
+let lastAcceptedAt = 0;
+let prevDualWristX = null;
+let dualWaveSwitches = 0;
+let dualWaveDirection = 0;
+let prevRightWristX = null;
+let rightWaveSwitches = 0;
+let rightWaveDirection = 0;
+let lastSpecialPhraseAt = 0;
+let specialLockUntil = 0;
+let lockedSpecialSign = '';
 
 // ✅ NEW: Quality score for confidence calculation
 let qualityScore = 0;
 
+function clamp01(v) {
+  return Math.max(0, Math.min(1, v));
+}
+
+function getWindowSize() {
+  const fps = Math.max(currentFPS || 0, 24);
+  return Math.max(8, Math.min(22, Math.round((detectionLatency / 1000) * fps * 0.4)));
+}
+
+function getStablePrediction(window, supportThreshold = 0.58) {
+  if (!window.length) return null;
+  const buckets = {};
+  for (const item of window) {
+    if (!item?.sign) continue;
+    if (!buckets[item.sign]) buckets[item.sign] = { count: 0, confSum: 0 };
+    buckets[item.sign].count += 1;
+    buckets[item.sign].confSum += item.confidence;
+  }
+
+  const entries = Object.entries(buckets);
+  if (!entries.length) return null;
+
+  const [sign, stats] = entries.sort((a, b) => b[1].count - a[1].count)[0];
+  const support = stats.count / window.length;
+  if (support < supportThreshold) return null;
+
+  const avgConfidence = stats.confSum / stats.count;
+  return { sign, support, avgConfidence };
+}
+
 // ── Main classify function (returns {sign, confidence} or null) ──
-function classifyHand(landmarks) {
+function classifyHand(landmarks, handLabel = 'Right') {
   if (!landmarks || landmarks.length < 21) return null;
 
   const lm = landmarks;
@@ -1279,55 +1366,258 @@ function classifyHand(landmarks) {
     return Math.hypot(a.x - b.x, a.y - b.y);
   }
 
-  function isFingerUp(tip, mcp) {
-    return lm[tip].y < lm[mcp].y;
+  function fingerOpenScore(tip, pip, mcp) {
+    const palm = distance(lm[0], lm[9]) + 1e-6;
+    const tipLift = (lm[mcp].y - lm[tip].y) / palm;
+    const pipLift = (lm[mcp].y - lm[pip].y) / palm;
+    const spread = distance(lm[tip], lm[mcp]) / palm;
+    return clamp01(0.5 * tipLift + 0.25 * pipLift + 0.25 * spread);
   }
 
-  function isThumbOpen() {
-    return Math.abs(lm[4].x - lm[2].x) > 0.08;
+  function thumbOpenScore() {
+    const palm = distance(lm[0], lm[9]) + 1e-6;
+    const thumbReach = distance(lm[4], lm[5]) / palm;
+    const thumbSpread = Math.abs(lm[4].x - lm[2].x) / (Math.abs(lm[5].x - lm[17].x) + 1e-6);
+    return clamp01(0.55 * thumbReach + 0.45 * thumbSpread);
   }
 
-  // ✅ STEP 1: Extract finger states
-  const thumb  = isThumbOpen();
-  const index  = isFingerUp(8, 5);
-  const middle = isFingerUp(12, 9);
-  const ring   = isFingerUp(16, 13);
-  const pinky  = isFingerUp(20, 17);
+  const thumbScore = thumbOpenScore();
+  const indexScore = fingerOpenScore(8, 7, 5);
+  const middleScore = fingerOpenScore(12, 11, 9);
+  const ringScore = fingerOpenScore(16, 15, 13);
+  const pinkyScore = fingerOpenScore(20, 19, 17);
 
-  // ✅ Calculate quality score (0-5)
-  qualityScore = [thumb, index, middle, ring, pinky].filter(Boolean).length;
+  const fingerScores = [thumbScore, indexScore, middleScore, ringScore, pinkyScore];
+  qualityScore = fingerScores.filter(v => v > 0.55).length;
+  const palm = distance(lm[0], lm[9]) + 1e-6;
+  const thumbIndexDist = distance(lm[4], lm[8]) / palm;
+  const thumbMiddleDist = distance(lm[4], lm[12]) / palm;
+  const middleRingClosed = middleScore < 0.45 && ringScore < 0.45 && pinkyScore < 0.45;
+  const indexClearlyUp = indexScore > 0.62;
 
-  // ✅ Base confidence: 0.6 + (quality * 0.07), max 0.95
-  const getConfidence = () => Math.min(0.6 + qualityScore * 0.07, 0.95);
+  // Explicit D detector: index up, others curled, thumb near middle/index cluster.
+  if (handLabel === 'Right' && indexClearlyUp && middleRingClosed && thumbMiddleDist < 0.72 && thumbIndexDist < 0.95) {
+    const dConfidence = clamp01(0.64 + 0.2 * clamp01(indexScore) + 0.16 * clamp01(1 - ((middleScore + ringScore + pinkyScore) / 3)));
+    return { sign: 'D', confidence: dConfidence };
+  }
 
-  // ── Custom Gesture Rules ──
-  if (!index && !middle && !ring && !pinky && !thumb)
-    return { sign: 'S', confidence: getConfidence() };
-  if (!index && !middle && !ring && !pinky && thumb)
-    return { sign: 'A', confidence: getConfidence() };
-  if (index && middle && ring && pinky && !thumb)
-    return { sign: 'B', confidence: getConfidence() };
-  if (index && !middle && !ring && !pinky && thumb)
-    return { sign: 'L', confidence: getConfidence() };
-  if (index && !middle && !ring && !pinky && !thumb)
-    return { sign: '1', confidence: getConfidence() };
-  if (index && middle && !ring && !pinky && !thumb)
-    return { sign: '2', confidence: getConfidence() };
-  if (index && middle && ring && !pinky && !thumb)
-    return { sign: 'W', confidence: getConfidence() };
-  if (!index && !middle && !ring && pinky && !thumb)
-    return { sign: 'I', confidence: getConfidence() };
-  if (!index && !middle && !ring && pinky && thumb)
-    return { sign: 'Y', confidence: getConfidence() };
-  if (index && middle && ring && pinky && thumb)
-    return { sign: '5', confidence: getConfidence() };
+  // Explicit C detector to avoid C getting collapsed to S/A.
+  const curvedFingerScores = [indexScore, middleScore, ringScore, pinkyScore];
+  const avgFingerOpen = (indexScore + middleScore + ringScore + pinkyScore) / 4;
+  const allCurvedButNotFlat = curvedFingerScores.every(v => v > 0.12 && v < 0.95);
+  const curvedCount = curvedFingerScores.filter(v => v > 0.2 && v < 0.82).length;
+  const thumbForC = thumbScore > 0.22 && thumbScore < 0.96;
+  const cGap = thumbIndexDist > 0.3 && thumbIndexDist < 1.4;
+  if (handLabel === 'Right' && allCurvedButNotFlat && curvedCount >= 3 && thumbForC && cGap && avgFingerOpen > 0.24) {
+    const curveCenter = 1 - (Math.abs(indexScore - 0.48) + Math.abs(middleScore - 0.48) + Math.abs(ringScore - 0.48) + Math.abs(pinkyScore - 0.48)) / 2;
+    const cConfidence = clamp01(0.58 + 0.3 * clamp01(curveCenter) + 0.12 * clamp01(thumbScore));
+    return { sign: 'C', confidence: cConfidence };
+  }
 
-  // F or OK sign
-  const thumbIndexClose = distance(lm[4], lm[8]) < 0.05;
-  if (thumbIndexClose && middle && ring && pinky)
-    return { sign: 'F', confidence: 0.80 };
+  function matchScore(pattern) {
+    const scores = [];
+    for (let i = 0; i < 5; i++) {
+      const expected = pattern[i];
+      if (expected === null) continue;
+      const v = fingerScores[i];
+      scores.push(expected ? v : (1 - v));
+    }
+    if (!scores.length) return 0;
+    return scores.reduce((a, b) => a + b, 0) / scores.length;
+  }
+
+  const letterRules = [
+    { sign: 'S', pattern: [false, false, false, false, false] },
+    { sign: 'A', pattern: [true, false, false, false, false] },
+    { sign: 'B', pattern: [false, true, true, true, true] },
+    { sign: 'D', pattern: [true, true, false, false, false] },
+    { sign: 'L', pattern: [true, true, false, false, false] },
+    { sign: 'W', pattern: [false, true, true, true, false] },
+    { sign: 'I', pattern: [false, false, false, false, true] },
+    { sign: 'Y', pattern: [true, false, false, false, true] }
+  ];
+
+  const numberRules = [
+    { sign: '0', pattern: [true, false, false, false, false] },
+    { sign: '1', pattern: [false, true, false, false, false] },
+    { sign: '2', pattern: [false, true, true, false, false] },
+    { sign: '3', pattern: [true, true, true, false, false] },
+    { sign: '4', pattern: [false, true, true, true, true] },
+    { sign: '5', pattern: [true, true, true, true, true] },
+    { sign: '6', pattern: [true, false, false, false, true] },
+    { sign: '10', pattern: [true, false, false, false, false] }
+  ];
+
+  const activeRules = handLabel === 'Left' ? numberRules : letterRules;
+
+  const scored = activeRules
+    .map(rule => ({ sign: rule.sign, score: matchScore(rule.pattern) }))
+    .sort((a, b) => b.score - a.score);
+
+  const best = scored[0];
+  const second = scored[1];
+  const separation = best.score - second.score;
+  const baseConfidence = clamp01(0.8 * best.score + 0.2 * clamp01(separation * 2));
+
+  if (best.sign === 'A' && avgFingerOpen > 0.22) {
+    return null;
+  }
+
+  if (best.score >= 0.62) {
+    return { sign: best.sign, confidence: baseConfidence };
+  }
+
+  // F / 9 / OK sign
+  const thumbIndexClose = thumbIndexDist < 0.38;
+  if (thumbIndexClose && middleScore > 0.55 && ringScore > 0.55 && pinkyScore > 0.55) {
+    const fConfidence = clamp01((middleScore + ringScore + pinkyScore + (1 - indexScore)) / 4);
+    return { sign: handLabel === 'Left' ? '9' : 'F', confidence: Math.max(0.62, fConfidence) };
+  }
 
   return null;
+}
+
+function isOpenPalm(landmarks) {
+  const lm = landmarks;
+  return lm[8].y < lm[6].y && lm[12].y < lm[10].y && lm[16].y < lm[14].y && lm[20].y < lm[18].y;
+}
+
+function isClosedPalm(landmarks) {
+  const lm = landmarks;
+  return lm[8].y > lm[6].y && lm[12].y > lm[10].y && lm[16].y > lm[14].y && lm[20].y > lm[18].y;
+}
+
+function isThumbsUp(landmarks) {
+  const lm = landmarks;
+  const thumbUp = lm[4].y < lm[3].y && lm[3].y < lm[2].y;
+  const othersClosed = lm[8].y > lm[6].y && lm[12].y > lm[10].y && lm[16].y > lm[14].y && lm[20].y > lm[18].y;
+  return thumbUp && othersClosed;
+}
+
+function isFourUpThumbIn(landmarks) {
+  const lm = landmarks;
+  const palmSize = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y) + 1e-6;
+  const fourUp = lm[8].y < lm[6].y && lm[12].y < lm[10].y && lm[16].y < lm[14].y && lm[20].y < lm[18].y;
+  const thumbNearPalm = (Math.hypot(lm[4].x - lm[9].x, lm[4].y - lm[9].y) / palmSize) < 0.8;
+  const thumbNearIndexBase = (Math.hypot(lm[4].x - lm[5].x, lm[4].y - lm[5].y) / palmSize) < 0.75;
+  const thumbNotSpread = (Math.abs(lm[4].x - lm[2].x) / (Math.abs(lm[5].x - lm[17].x) + 1e-6)) < 0.55;
+  return fourUp && thumbNearPalm && thumbNearIndexBase && thumbNotSpread;
+}
+
+function isIndexPointingToCamera(landmarks) {
+  const lm = landmarks;
+  const indexExtended = lm[8].y < lm[6].y;
+  const othersClosed = lm[12].y > lm[10].y && lm[16].y > lm[14].y && lm[20].y > lm[18].y;
+  const towardCamera = (lm[8].z + 0.08) < lm[5].z;
+  return indexExtended && othersClosed && towardCamera;
+}
+
+function detectHelloGuys(results) {
+  if (!results.multiHandLandmarks || results.multiHandLandmarks.length < 2) {
+    prevDualWristX = null;
+    dualWaveSwitches = 0;
+    dualWaveDirection = 0;
+    return false;
+  }
+
+  const [lm1, lm2] = results.multiHandLandmarks;
+  if (isClosedPalm(lm1) && isClosedPalm(lm2)) {
+    prevDualWristX = null;
+    dualWaveSwitches = 0;
+    dualWaveDirection = 0;
+    return true;
+  }
+
+  if (!isOpenPalm(lm1) || !isOpenPalm(lm2)) return false;
+
+  const wristAvgX = (lm1[0].x + lm2[0].x) / 2;
+  if (prevDualWristX === null) {
+    prevDualWristX = wristAvgX;
+    return false;
+  }
+
+  const dx = wristAvgX - prevDualWristX;
+  prevDualWristX = wristAvgX;
+  if (Math.abs(dx) < 0.02) return false;
+
+  const dir = dx > 0 ? 1 : -1;
+  if (dir !== dualWaveDirection) {
+    dualWaveSwitches += 1;
+    dualWaveDirection = dir;
+  }
+
+  if (dualWaveSwitches >= 4) {
+    dualWaveSwitches = 0;
+    return true;
+  }
+  return false;
+}
+
+function detectHelpMe(results) {
+  if (!results.multiHandLandmarks || results.multiHandLandmarks.length < 2) return false;
+  const [lm1, lm2] = results.multiHandLandmarks;
+  return isFourUpThumbIn(lm1) && isFourUpThumbIn(lm2);
+}
+
+function detectHowAreYou(results) {
+  const landmarks = results.multiHandLandmarks || [];
+  if (!landmarks.length) return false;
+  const leftHand = landmarks.find((_, i) => results.multiHandedness?.[i]?.label === 'Left');
+  const rightHand = landmarks.find((_, i) => results.multiHandedness?.[i]?.label === 'Right');
+
+  // Two thumbs up pose (like your screenshot)
+  if (leftHand && rightHand && isThumbsUp(leftHand) && isThumbsUp(rightHand)) return true;
+
+  // Single-hand fallback only when exactly one hand is visible.
+  if (landmarks.length === 1) {
+    if (leftHand && isIndexPointingToCamera(leftHand)) return true;
+    if (rightHand && isIndexPointingToCamera(rightHand)) return true;
+  }
+
+  return false;
+}
+
+function detectRightHandHello(results) {
+  if (!results.multiHandLandmarks?.length) {
+    prevRightWristX = null;
+    rightWaveSwitches = 0;
+    rightWaveDirection = 0;
+    return false;
+  }
+
+  const rightIndex = results.multiHandedness?.findIndex(h => h?.label === 'Right');
+  if (rightIndex === undefined || rightIndex < 0) {
+    prevRightWristX = null;
+    rightWaveSwitches = 0;
+    rightWaveDirection = 0;
+    return false;
+  }
+
+  const rightHand = results.multiHandLandmarks[rightIndex];
+  if (!rightHand || !isOpenPalm(rightHand)) return false;
+
+  const wristX = rightHand[0].x;
+  if (prevRightWristX === null) {
+    prevRightWristX = wristX;
+    return false;
+  }
+
+  const dx = wristX - prevRightWristX;
+  prevRightWristX = wristX;
+  if (Math.abs(dx) < 0.018) return false;
+
+  const dir = dx > 0 ? 1 : -1;
+  if (dir !== rightWaveDirection) {
+    rightWaveSwitches += 1;
+    rightWaveDirection = dir;
+  }
+
+  if (rightWaveSwitches >= 3) {
+    rightWaveSwitches = 0;
+    return true;
+  }
+
+  return false;
 }
 
 async function toggleCamera() {
@@ -1422,6 +1712,9 @@ function stopCamera() {
   document.getElementById('btn-label').textContent = '▶ Start Camera';
   document.getElementById('detected-sign').textContent = '—';
   document.getElementById('fps-badge').textContent = '0 FPS';
+  predictionWindow = [];
+  lastAcceptedSign = '';
+  lastAcceptedAt = 0;
 }
 
 // ✅ MAIN DETECTION HANDLER — All 7 steps implemented here
@@ -1462,10 +1755,12 @@ function onResults(results) {
       });
 
       // ✅ STEP 1: Get prediction with confidence
-      const result = classifyHand(landmarks);
+      const result = classifyHand(landmarks, handedness.label);
       if (result && result.sign) {
-        detectedSign = result.sign;
-        confidence = result.confidence;
+        if (result.confidence > confidence) {
+          detectedSign = result.sign;
+          confidence = result.confidence;
+        }
       }
 
       // Label hand
@@ -1483,8 +1778,90 @@ function onResults(results) {
     handCount === 0 ? 'No hands detected' :
     handCount === 1 ? '1 hand detected' : '2 hands detected';
 
+  const now = Date.now();
+  const leftHand = results.multiHandLandmarks?.find((_, i) => results.multiHandedness?.[i]?.label === 'Left');
+  const rightHand = results.multiHandLandmarks?.find((_, i) => results.multiHandedness?.[i]?.label === 'Right');
+  const bothHandsPresent = Boolean(leftHand && rightHand);
+  let specialOverride = false;
+
+  if (now < specialLockUntil && lockedSpecialSign) {
+    detectedSign = lockedSpecialSign;
+    confidence = 0.95;
+    specialOverride = true;
+  } else if (detectHelpMe(results) && (now - lastSpecialPhraseAt > 1400)) {
+    detectedSign = 'HELP ME !';
+    confidence = 0.95;
+    lastSpecialPhraseAt = now;
+    specialLockUntil = now + 1600;
+    lockedSpecialSign = detectedSign;
+    specialOverride = true;
+  } else if (detectHowAreYou(results) && (now - lastSpecialPhraseAt > 1400)) {
+    detectedSign = 'HOW ARE YOU';
+    confidence = 0.94;
+    lastSpecialPhraseAt = now;
+    specialLockUntil = now + 1500;
+    lockedSpecialSign = detectedSign;
+    specialOverride = true;
+  } else if (detectHelloGuys(results) && (now - lastSpecialPhraseAt > 1500)) {
+    detectedSign = 'HELLO GUYS';
+    confidence = 0.96;
+    lastSpecialPhraseAt = now;
+    specialLockUntil = now + 1800;
+    lockedSpecialSign = detectedSign;
+    specialOverride = true;
+  } else if (!bothHandsPresent && detectRightHandHello(results) && (now - lastSpecialPhraseAt > 1200)) {
+    detectedSign = 'HELLO';
+    confidence = 0.95;
+    lastSpecialPhraseAt = now;
+    specialLockUntil = now + 1200;
+    lockedSpecialSign = detectedSign;
+    specialOverride = true;
+  }
+
+  if (specialOverride) {
+    predictionWindow = [{ sign: detectedSign, confidence }];
+    stableSign = detectedSign;
+    stableStart = now;
+
+    const percent = Math.round(confidence * 100);
+    document.getElementById('conf-bar').style.width = percent + '%';
+    document.getElementById('conf-val').textContent = percent + '%';
+
+    const detectedEl = document.getElementById('detected-sign');
+    const videoContainer = document.getElementById('video-container');
+    detectedEl.textContent = detectedSign;
+    detectedEl.classList.remove('unclear');
+    videoContainer.classList.remove('unclear-alert');
+
+    if (detectedSign !== currentDetected) {
+      currentDetected = detectedSign;
+      if (outputMode === 'phrase') {
+        addWord(currentDetected);
+      } else {
+        document.getElementById('speech-text').textContent = '"' + currentDetected + '"';
+        addToHistory(currentDetected);
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const utt = new SpeechSynthesisUtterance(currentDetected);
+          utt.rate = 1;
+          window.speechSynthesis.speak(utt);
+        }
+      }
+    }
+    return;
+  }
+
   // ✅ STEP 6: Always update confidence bar
-  const percent = Math.round(confidence * 100);
+  const windowSize = getWindowSize();
+  predictionWindow.push({ sign: detectedSign, confidence });
+  if (predictionWindow.length > windowSize) predictionWindow.shift();
+
+  const stablePrediction = getStablePrediction(predictionWindow, 0.58);
+  const combinedConfidence = stablePrediction
+    ? clamp01((stablePrediction.avgConfidence * 0.7) + (stablePrediction.support * 0.3))
+    : confidence * 0.6;
+
+  const percent = Math.round(combinedConfidence * 100);
   document.getElementById('conf-bar').style.width = percent + '%';
   document.getElementById('conf-val').textContent = percent + '%';
 
@@ -1492,7 +1869,7 @@ function onResults(results) {
   const detectedEl = document.getElementById('detected-sign');
   const videoContainer = document.getElementById('video-container');
 
-  if (confidence < 0.75) {
+  if (!stablePrediction || combinedConfidence < 0.55) {
     // ✅ STEP 3: Show unclear message
     detectedEl.textContent = '⚠️ Sign unclear — please repeat';
     detectedEl.classList.add('unclear');
@@ -1502,7 +1879,7 @@ function onResults(results) {
 
   } else {
     // ✅ STEP 5: Show interpreted word normally
-    detectedEl.textContent = detectedSign;
+    detectedEl.textContent = stablePrediction.sign;
     detectedEl.classList.remove('unclear');
 
     // Remove alert
@@ -1510,31 +1887,34 @@ function onResults(results) {
   }
 
   // ✅ STEP 7: Stable detection with latency buffer
-  const now = Date.now();
-  if (detectedSign && confidence >= 0.75) {
-    if (detectedSign === stableSign) {
+  if (stablePrediction && combinedConfidence >= 0.55) {
+    if (stablePrediction.sign === stableSign) {
       const elapsed = now - stableStart;
-      if (elapsed >= detectionLatency && detectedSign !== currentDetected) {
-        currentDetected = detectedSign;
+      if (elapsed >= detectionLatency && stablePrediction.sign !== currentDetected) {
+        currentDetected = stablePrediction.sign;
+
+        if (currentDetected === lastAcceptedSign && now - lastAcceptedAt < 700) return;
+        lastAcceptedSign = currentDetected;
+        lastAcceptedAt = now;
 
         if (outputMode === 'phrase') {
-          addWord(detectedSign);
+          addWord(currentDetected);
         } else {
-          document.getElementById('speech-text').textContent = '"' + detectedSign + '"';
-          addToHistory(detectedSign);
+          document.getElementById('speech-text').textContent = '"' + currentDetected + '"';
+          addToHistory(currentDetected);
           if (window.speechSynthesis) {
             window.speechSynthesis.cancel();
-            const utt = new SpeechSynthesisUtterance(detectedSign);
+            const utt = new SpeechSynthesisUtterance(currentDetected);
             utt.rate = 1;
             window.speechSynthesis.speak(utt);
           }
         }
       }
     } else {
-      stableSign = detectedSign;
+      stableSign = stablePrediction.sign;
       stableStart = now;
     }
-  } else if (confidence < 0.75) {
+  } else {
     // Reset stable detection for unclear signs
     stableSign = '';
     stableStart = 0;
