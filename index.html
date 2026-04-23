@@ -185,6 +185,19 @@
   .video-container {
     position: relative; border-radius: 14px; overflow: hidden;
     background: #000; aspect-ratio: 16/9;
+    border: 3px solid transparent;
+    transition: border 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  /* ✅ STEP 4: Visual cue for unclear signs */
+  .video-container.unclear-alert {
+    border: 3px solid var(--neon3);
+    animation: flash-border 0.8s infinite alternate;
+  }
+
+  @keyframes flash-border {
+    from { box-shadow: 0 0 5px var(--neon3); }
+    to { box-shadow: 0 0 25px var(--neon3); }
   }
 
   #videoElement {
@@ -212,6 +225,14 @@
     color: #fff; text-shadow: 0 0 20px var(--neon);
     transition: all 0.3s ease;
     min-height: 3rem;
+    line-height: 1.2;
+  }
+
+  .detected-sign.unclear {
+    color: var(--neon3);
+    text-shadow: 0 0 20px var(--neon3);
+    font-size: 1.2rem;
+    font-weight: 600;
   }
 
   .hand-count {
@@ -785,7 +806,7 @@
         </div>
       </div>
 
-      <!-- Confidence -->
+      <!-- ✅ STEP 6: Confidence bar always visible -->
       <div class="confidence-row" style="margin-top:1rem">
         <span class="slider-label" style="min-width:70px">Confidence</span>
         <div class="conf-bar-bg">
@@ -986,7 +1007,6 @@
       ctx.fillStyle = `rgba(${p.color},${p.a})`;
       ctx.fill();
     });
-    // draw connections
     for (let i = 0; i < particles.length; i++) {
       for (let j = i + 1; j < particles.length; j++) {
         const dx = particles[i].x - particles[j].x;
@@ -1028,7 +1048,7 @@ const ASL_SIGNS = {
     { letter: 'H', emoji: '✌️', label: 'Two fingers pointing sideways', tips: ['Extend index and middle finger', 'Point them sideways', 'Thumb tucks in', 'Other fingers curl'], difficulty: 'easy' },
     { letter: 'I', emoji: '🤙', label: 'Pinky up, others closed', tips: ['Raise only the pinky finger', 'Fold all other fingers into fist', 'Thumb tucks over fingers', 'Palm faces out'], difficulty: 'easy' },
     { letter: 'J', emoji: '🤙', label: 'Pinky up, draw a J', tips: ['Start with pinky up like I', 'Move hand in J motion downward then hook left', 'Motion traces a J in the air', 'Keep other fingers closed'], difficulty: 'hard' },
-    { letter: 'K', emoji: '✌️', label: 'Index & middle up, thumb out', tips: ['Raise index and middle fingers', 'Extend thumb out to the side', 'Other fingers curl in', 'Looks like a K shape'], difficulty: 'medium' },
+    { letter: 'K', emoji: '✌️', label: 'Index & middle up, thumb out', tips: ['Raise index and middle fingers', 'Extend thumb out to the side', 'Curl other 3 fingers in', 'Looks like a K shape'], difficulty: 'medium' },
     { letter: 'L', emoji: '🤟', label: 'L shape with thumb & index', tips: ['Extend index finger up', 'Extend thumb to the side', 'Curl other 3 fingers into palm', 'Forms a clear L shape'], difficulty: 'easy' },
   ],
   numbers: [
@@ -1246,267 +1266,15 @@ let currentFPS = 0;
 let stableSign = '';
 let stableStart = 0;
 
-// ─────────────────────────────────────────────
-//  OmniSign Classifier — Fingerpose powered
-//  Each gesture = a named ASL sign
-//  Curl values:  0 = fully open, 1 = half curl, 2 = fully curled
-//  Direction:    0=vertical_up 1=vertical_down 2=horizontal_left
-//                3=horizontal_right 4=diagonal_up_right 5=diagonal_up_left
-//                6=diagonal_down_right 7=diagonal_down_left
-// ─────────────────────────────────────────────
+// ✅ NEW: Quality score for confidence calculation
+let qualityScore = 0;
 
-let GE = null; // GestureEstimator — built after fingerpose CDN loads
-
-function buildGestureEstimator() {
-  if (!window.fp) return; // fingerpose not loaded yet
-
-  const { GestureDescription, GestureEstimator, Finger, FingerCurl, FingerDirection } = fp;
-
-  // ── Helper shortcuts ──
-  const OPEN   = FingerCurl.NoCurl;
-  const HALF   = FingerCurl.HalfCurl;
-  const CURL   = FingerCurl.FullCurl;
-  const UP     = FingerDirection.VerticalUp;
-  const DOWN   = FingerDirection.VerticalDown;
-  const H_L    = FingerDirection.HorizontalLeft;
-  const H_R    = FingerDirection.HorizontalRight;
-  const D_UL   = FingerDirection.DiagonalUpLeft;
-  const D_UR   = FingerDirection.DiagonalUpRight;
-  const { Thumb, Index, Middle, Ring, Pinky } = Finger;
-
-  const gestures = [];
-
-  // ── A ── Fist, thumb to the side
-  const A = new GestureDescription('A');
-  A.addCurl(Thumb,  HALF, 1.0);
-  A.addCurl(Index,  CURL, 1.0);
-  A.addCurl(Middle, CURL, 1.0);
-  A.addCurl(Ring,   CURL, 1.0);
-  A.addCurl(Pinky,  CURL, 1.0);
-  gestures.push(A);
-
-  // ── B ── All 4 fingers up, thumb across
-  const B = new GestureDescription('B');
-  B.addCurl(Thumb,  CURL, 1.0);
-  B.addCurl(Index,  OPEN, 1.0);
-  B.addCurl(Middle, OPEN, 1.0);
-  B.addCurl(Ring,   OPEN, 1.0);
-  B.addCurl(Pinky,  OPEN, 1.0);
-  B.addDirection(Index,  UP, 1.0);
-  B.addDirection(Middle, UP, 1.0);
-  gestures.push(B);
-
-  // ── C ── Curved C shape
-  const C = new GestureDescription('C');
-  C.addCurl(Thumb,  HALF, 1.0);
-  C.addCurl(Index,  HALF, 1.0);
-  C.addCurl(Middle, HALF, 1.0);
-  C.addCurl(Ring,   HALF, 1.0);
-  C.addCurl(Pinky,  HALF, 1.0);
-  gestures.push(C);
-
-  // ── D ── Index up, others touch thumb
-  const D = new GestureDescription('D');
-  D.addCurl(Index,  OPEN, 1.0);
-  D.addCurl(Middle, CURL, 1.0);
-  D.addCurl(Ring,   CURL, 1.0);
-  D.addCurl(Pinky,  CURL, 1.0);
-  D.addCurl(Thumb,  HALF, 1.0);
-  D.addDirection(Index, UP, 1.0);
-  gestures.push(D);
-
-  // ── E ── All fingers curled, thumb tucked
-  const E = new GestureDescription('E');
-  E.addCurl(Thumb,  HALF, 1.0);
-  E.addCurl(Index,  CURL, 1.0);
-  E.addCurl(Middle, CURL, 1.0);
-  E.addCurl(Ring,   CURL, 1.0);
-  E.addCurl(Pinky,  CURL, 1.0);
-  gestures.push(E);
-
-  // ── F ── Index + thumb touch, others up
-  const F = new GestureDescription('F');
-  F.addCurl(Thumb,  HALF, 1.0);
-  F.addCurl(Index,  HALF, 1.0);
-  F.addCurl(Middle, OPEN, 1.0);
-  F.addCurl(Ring,   OPEN, 1.0);
-  F.addCurl(Pinky,  OPEN, 1.0);
-  gestures.push(F);
-
-  // ── I ── Only pinky up
-  const I = new GestureDescription('I');
-  I.addCurl(Thumb,  CURL, 1.0);
-  I.addCurl(Index,  CURL, 1.0);
-  I.addCurl(Middle, CURL, 1.0);
-  I.addCurl(Ring,   CURL, 1.0);
-  I.addCurl(Pinky,  OPEN, 1.0);
-  I.addDirection(Pinky, UP, 1.0);
-  gestures.push(I);
-
-  // ── L ── Index up + thumb out = L shape
-  const L = new GestureDescription('L');
-  L.addCurl(Thumb,  OPEN, 1.0);
-  L.addCurl(Index,  OPEN, 1.0);
-  L.addCurl(Middle, CURL, 1.0);
-  L.addCurl(Ring,   CURL, 1.0);
-  L.addCurl(Pinky,  CURL, 1.0);
-  L.addDirection(Index, UP, 1.0);
-  L.addDirection(Thumb, H_R, 0.9);
-  gestures.push(L);
-
-  // ── S ── Fist with thumb over fingers
-  const S = new GestureDescription('S');
-  S.addCurl(Thumb,  HALF, 1.0);
-  S.addCurl(Index,  CURL, 1.0);
-  S.addCurl(Middle, CURL, 1.0);
-  S.addCurl(Ring,   CURL, 1.0);
-  S.addCurl(Pinky,  CURL, 1.0);
-  gestures.push(S);
-
-  // ── W ── Index + middle + ring up
-  const W = new GestureDescription('W');
-  W.addCurl(Thumb,  CURL, 1.0);
-  W.addCurl(Index,  OPEN, 1.0);
-  W.addCurl(Middle, OPEN, 1.0);
-  W.addCurl(Ring,   OPEN, 1.0);
-  W.addCurl(Pinky,  CURL, 1.0);
-  gestures.push(W);
-
-  // ── Y ── Thumb + pinky out
-  const Y = new GestureDescription('Y');
-  Y.addCurl(Thumb,  OPEN, 1.0);
-  Y.addCurl(Index,  CURL, 1.0);
-  Y.addCurl(Middle, CURL, 1.0);
-  Y.addCurl(Ring,   CURL, 1.0);
-  Y.addCurl(Pinky,  OPEN, 1.0);
-  Y.addDirection(Thumb,  D_UR, 1.0);
-  Y.addDirection(Pinky,  DOWN, 1.0);
-  gestures.push(Y);
-
-  // ── Number 1 ── Index finger only up
-  const ONE = new GestureDescription('1');
-  ONE.addCurl(Thumb,  CURL, 1.0);
-  ONE.addCurl(Index,  OPEN, 1.0);
-  ONE.addCurl(Middle, CURL, 1.0);
-  ONE.addCurl(Ring,   CURL, 1.0);
-  ONE.addCurl(Pinky,  CURL, 1.0);
-  ONE.addDirection(Index, UP, 1.0);
-  gestures.push(ONE);
-
-  // ── Number 2 / V / Peace ── Index + middle up
-  const TWO = new GestureDescription('2');
-  TWO.addCurl(Thumb,  CURL, 1.0);
-  TWO.addCurl(Index,  OPEN, 1.0);
-  TWO.addCurl(Middle, OPEN, 1.0);
-  TWO.addCurl(Ring,   CURL, 1.0);
-  TWO.addCurl(Pinky,  CURL, 1.0);
-  TWO.addDirection(Index,  UP, 1.0);
-  TWO.addDirection(Middle, UP, 1.0);
-  gestures.push(TWO);
-
-  // ── Number 5 ── Open hand
-  const FIVE = new GestureDescription('5');
-  FIVE.addCurl(Thumb,  OPEN, 1.0);
-  FIVE.addCurl(Index,  OPEN, 1.0);
-  FIVE.addCurl(Middle, OPEN, 1.0);
-  FIVE.addCurl(Ring,   OPEN, 1.0);
-  FIVE.addCurl(Pinky,  OPEN, 1.0);
-  gestures.push(FIVE);
-
-  // ── HELLO ── Open hand near forehead, wave out
-  //    Static snapshot: open flat hand, all fingers up, palm forward
-  const HELLO = new GestureDescription('Hello');
-  HELLO.addCurl(Thumb,  OPEN, 0.9);
-  HELLO.addCurl(Index,  OPEN, 1.0);
-  HELLO.addCurl(Middle, OPEN, 1.0);
-  HELLO.addCurl(Ring,   OPEN, 1.0);
-  HELLO.addCurl(Pinky,  OPEN, 1.0);
-  HELLO.addDirection(Index,  D_UR, 1.0);
-  HELLO.addDirection(Middle, D_UR, 0.9);
-  HELLO.addDirection(Thumb,  H_R,  0.8);
-  gestures.push(HELLO);
-
-  // ── YES ── Fist nodding (static = fist)
-  const YES = new GestureDescription('Yes');
-  YES.addCurl(Thumb,  OPEN, 0.8);
-  YES.addCurl(Index,  CURL, 1.0);
-  YES.addCurl(Middle, CURL, 1.0);
-  YES.addCurl(Ring,   CURL, 1.0);
-  YES.addCurl(Pinky,  CURL, 1.0);
-  YES.addDirection(Thumb, UP, 1.0);
-  gestures.push(YES);
-
-  // ── THANK YOU ── Flat hand moves from chin outward
-  //    Static: open hand, fingers pointing diagonal up
-  const THANKYOU = new GestureDescription('Thank You');
-  THANKYOU.addCurl(Thumb,  OPEN, 0.9);
-  THANKYOU.addCurl(Index,  OPEN, 1.0);
-  THANKYOU.addCurl(Middle, OPEN, 1.0);
-  THANKYOU.addCurl(Ring,   OPEN, 1.0);
-  THANKYOU.addCurl(Pinky,  OPEN, 1.0);
-  THANKYOU.addDirection(Index,  D_UR, 1.0);
-  THANKYOU.addDirection(Middle, D_UR, 1.0);
-  THANKYOU.addDirection(Ring,   D_UR, 0.9);
-  gestures.push(THANKYOU);
-
-  // ── HOW ARE YOU ── Signed as 3 parts; static snapshot = curved open hands
-  //    For detection purposes: both hands half-curled facing each other
-  const HOWAREYOU = new GestureDescription('How are you?');
-  HOWAREYOU.addCurl(Thumb,  HALF, 1.0);
-  HOWAREYOU.addCurl(Index,  HALF, 1.0);
-  HOWAREYOU.addCurl(Middle, HALF, 1.0);
-  HOWAREYOU.addCurl(Ring,   HALF, 1.0);
-  HOWAREYOU.addCurl(Pinky,  HALF, 1.0);
-  HOWAREYOU.addDirection(Index,  D_UR, 1.0);
-  HOWAREYOU.addDirection(Middle, D_UR, 1.0);
-  gestures.push(HOWAREYOU);
-
-  // ── PLEASE ── Open hand circular on chest
-  //    Static: open palm flat, fingers pointing sideways
-  const PLEASE = new GestureDescription('Please');
-  PLEASE.addCurl(Thumb,  OPEN, 0.8);
-  PLEASE.addCurl(Index,  OPEN, 1.0);
-  PLEASE.addCurl(Middle, OPEN, 1.0);
-  PLEASE.addCurl(Ring,   OPEN, 1.0);
-  PLEASE.addCurl(Pinky,  OPEN, 1.0);
-  PLEASE.addDirection(Index,  H_R, 1.0);
-  PLEASE.addDirection(Middle, H_R, 1.0);
-  PLEASE.addDirection(Ring,   H_R, 0.9);
-  gestures.push(PLEASE);
-
-  // ── NO ── Index + middle snap to thumb
-  //    Static: index + middle straight, thumb extended
-  const NO = new GestureDescription('No');
-  NO.addCurl(Thumb,  OPEN, 1.0);
-  NO.addCurl(Index,  OPEN, 1.0);
-  NO.addCurl(Middle, OPEN, 1.0);
-  NO.addCurl(Ring,   CURL, 1.0);
-  NO.addCurl(Pinky,  CURL, 1.0);
-  NO.addDirection(Index,  H_R, 1.0);
-  NO.addDirection(Middle, H_R, 1.0);
-  NO.addDirection(Thumb,  H_R, 1.0);
-  gestures.push(NO);
-
-  GE = new GestureEstimator(gestures);
-  console.log('OmniSign: Fingerpose GestureEstimator ready with', gestures.length, 'signs');
-}
-
-// Build the estimator once fingerpose is available
-// (CDN script loads async, so we poll briefly)
-let _fpPollCount = 0;
-const _fpPoll = setInterval(() => {
-  _fpPollCount++;
-  if (window.fp) { buildGestureEstimator(); clearInterval(_fpPoll); }
-  if (_fpPollCount > 40) clearInterval(_fpPoll); // give up after 4s
-}, 100);
-
-// ── Main classify function called every frame ──
+// ── Main classify function (returns {sign, confidence} or null) ──
 function classifyHand(landmarks) {
   if (!landmarks || landmarks.length < 21) return null;
 
   const lm = landmarks;
 
-  // ---------- Helpers ----------
   function distance(a, b) {
     return Math.hypot(a.x - b.x, a.y - b.y);
   }
@@ -1519,82 +1287,46 @@ function classifyHand(landmarks) {
     return Math.abs(lm[4].x - lm[2].x) > 0.08;
   }
 
-  // ---------- Finger States ----------
+  // ✅ STEP 1: Extract finger states
   const thumb  = isThumbOpen();
   const index  = isFingerUp(8, 5);
   const middle = isFingerUp(12, 9);
   const ring   = isFingerUp(16, 13);
   const pinky  = isFingerUp(20, 17);
 
-  // ---------- Custom Gesture Rules ----------
+  // ✅ Calculate quality score (0-5)
+  qualityScore = [thumb, index, middle, ring, pinky].filter(Boolean).length;
 
-  // A (fist + thumb outside)
+  // ✅ Base confidence: 0.6 + (quality * 0.07), max 0.95
+  const getConfidence = () => Math.min(0.6 + qualityScore * 0.07, 0.95);
+
+  // ── Custom Gesture Rules ──
+  if (!index && !middle && !ring && !pinky && !thumb)
+    return { sign: 'S', confidence: getConfidence() };
   if (!index && !middle && !ring && !pinky && thumb)
-    return { sign: 'A', confidence: 0.9 };
-
-  // D (index up, thumb touching middle)
-  if (index && !middle && !ring && !pinky && distance(lm[4], lm[12]) < 0.05)
-    return { sign: 'D', confidence: 0.85 };
-
-  // F (OK sign)
-  if (distance(lm[4], lm[8]) < 0.05 && middle && ring && pinky)
-    return { sign: 'F', confidence: 0.9 };
-
-  // G (index + thumb sideways)
-  if (index && thumb && !middle && !ring && !pinky)
-    return { sign: 'G', confidence: 0.8 };
-
-  // H (index + middle)
+    return { sign: 'A', confidence: getConfidence() };
+  if (index && middle && ring && pinky && !thumb)
+    return { sign: 'B', confidence: getConfidence() };
+  if (index && !middle && !ring && !pinky && thumb)
+    return { sign: 'L', confidence: getConfidence() };
+  if (index && !middle && !ring && !pinky && !thumb)
+    return { sign: '1', confidence: getConfidence() };
   if (index && middle && !ring && !pinky && !thumb)
-    return { sign: 'H', confidence: 0.85 };
-
-  // I (pinky only)
+    return { sign: '2', confidence: getConfidence() };
+  if (index && middle && ring && !pinky && !thumb)
+    return { sign: 'W', confidence: getConfidence() };
   if (!index && !middle && !ring && pinky && !thumb)
-    return { sign: 'I', confidence: 0.9 };
+    return { sign: 'I', confidence: getConfidence() };
+  if (!index && !middle && !ring && pinky && thumb)
+    return { sign: 'Y', confidence: getConfidence() };
+  if (index && middle && ring && pinky && thumb)
+    return { sign: '5', confidence: getConfidence() };
 
-  // K (index + middle + thumb)
-  if (index && middle && thumb && !ring && !pinky)
-    return { sign: 'K', confidence: 0.85 };
+  // F or OK sign
+  const thumbIndexClose = distance(lm[4], lm[8]) < 0.05;
+  if (thumbIndexClose && middle && ring && pinky)
+    return { sign: 'F', confidence: 0.80 };
 
-  // ---------- Fallback to Fingerpose ----------
-  if (!GE) return null;
-
-  const keypoints = lm.map(l => [
-    l.x * 640,
-    l.y * 480,
-    l.z * 640
-  ]);
-
-  try {
-    const result = GE.estimate(keypoints, 7.5);
-    if (result.gestures && result.gestures.length > 0) {
-      const best = result.gestures.sort((a, b) => b.score - a.score)[0];
-      return { sign: best.name, confidence: best.score / 10 };
-    }
-  } catch (e) {}
-
-  return null;
-}
-
-// ── Fallback heuristic (works even without fingerpose) ──
-function heuristicClassify(landmarks) {
-  const lm = landmarks;
-  const thumbUp  = lm[4].y < lm[2].y;
-  const indexUp  = lm[8].y < lm[5].y;
-  const middleUp = lm[12].y < lm[9].y;
-  const ringUp   = lm[16].y < lm[13].y;
-  const pinkyUp  = lm[20].y < lm[17].y;
-  const count = [thumbUp, indexUp, middleUp, ringUp, pinkyUp].filter(Boolean).length;
-
-  if (!indexUp && !middleUp && !ringUp && !pinkyUp && thumbUp) return { sign: 'A', confidence: 0.7 };
-  if ( indexUp &&  middleUp &&  ringUp &&  pinkyUp && !thumbUp) return { sign: 'B', confidence: 0.75 };
-  if (count === 5) return { sign: '5', confidence: 0.8 };
-  if ( indexUp && !middleUp && !ringUp && !pinkyUp && thumbUp)  return { sign: 'L', confidence: 0.75 };
-  if ( indexUp && !middleUp && !ringUp && !pinkyUp && !thumbUp) return { sign: '1', confidence: 0.75 };
-  if ( indexUp &&  middleUp && !ringUp && !pinkyUp)             return { sign: '2', confidence: 0.75 };
-  if ( indexUp &&  middleUp &&  ringUp && !pinkyUp)             return { sign: 'W', confidence: 0.70 };
-  if (!indexUp && !middleUp && !ringUp &&  pinkyUp && thumbUp)  return { sign: 'Y', confidence: 0.78 };
-  if (count === 4 && !thumbUp) return { sign: '4', confidence: 0.72 };
   return null;
 }
 
@@ -1608,7 +1340,6 @@ async function toggleCamera() {
 
 async function startCamera() {
   try {
-    // Init MediaPipe Hands
     hands = new Hands({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
@@ -1632,13 +1363,11 @@ async function startCamera() {
     videoEl.srcObject = stream;
     await videoEl.play();
 
-    // Show video elements
     document.getElementById('no-camera-state').style.display = 'none';
     videoEl.style.display = 'block';
     canvasEl.style.display = 'block';
     document.getElementById('video-overlay').style.display = 'flex';
 
-    // Set canvas size
     videoEl.addEventListener('loadedmetadata', () => {
       canvasEl.width = videoEl.videoWidth;
       canvasEl.height = videoEl.videoHeight;
@@ -1647,7 +1376,6 @@ async function startCamera() {
     camera = new Camera(videoEl, {
       onFrame: async () => {
         await hands.send({ image: videoEl });
-        // FPS
         fpsFrames++;
         const now = Date.now();
         if (now - fpsLastTime >= 1000) {
@@ -1696,7 +1424,9 @@ function stopCamera() {
   document.getElementById('fps-badge').textContent = '0 FPS';
 }
 
+// ✅ MAIN DETECTION HANDLER — All 7 steps implemented here
 function onResults(results) {
+  
   const canvasEl = document.getElementById('output_canvas');
   const ctx = canvasEl.getContext('2d');
 
@@ -1731,9 +1461,9 @@ function onResults(results) {
         radius: 4
       });
 
-      // Classify — returns {sign, confidence} or null
+      // ✅ STEP 1: Get prediction with confidence
       const result = classifyHand(landmarks);
-      if (result && result.sign && result.sign !== '—') {
+      if (result && result.sign) {
         detectedSign = result.sign;
         confidence = result.confidence;
       }
@@ -1748,25 +1478,44 @@ function onResults(results) {
 
   ctx.restore();
 
-  // Update UI
+  // Update hand count display
   document.getElementById('hand-count').textContent =
     handCount === 0 ? 'No hands detected' :
     handCount === 1 ? '1 hand detected' : '2 hands detected';
 
-  // Stable detection with latency
+  // ✅ STEP 6: Always update confidence bar
+  const percent = Math.round(confidence * 100);
+  document.getElementById('conf-bar').style.width = percent + '%';
+  document.getElementById('conf-val').textContent = percent + '%';
+
+  // ✅ STEPS 2, 3, 5: Threshold logic with visual feedback
+  const detectedEl = document.getElementById('detected-sign');
+  const videoContainer = document.getElementById('video-container');
+
+  if (confidence < 0.75) {
+    // ✅ STEP 3: Show unclear message
+    detectedEl.textContent = '⚠️ Sign unclear — please repeat';
+    detectedEl.classList.add('unclear');
+
+    // ✅ STEP 4: Visual alert (flashing border)
+    videoContainer.classList.add('unclear-alert');
+
+  } else {
+    // ✅ STEP 5: Show interpreted word normally
+    detectedEl.textContent = detectedSign;
+    detectedEl.classList.remove('unclear');
+
+    // Remove alert
+    videoContainer.classList.remove('unclear-alert');
+  }
+
+  // ✅ STEP 7: Stable detection with latency buffer
   const now = Date.now();
-  if (detectedSign) {
+  if (detectedSign && confidence >= 0.75) {
     if (detectedSign === stableSign) {
       const elapsed = now - stableStart;
-      const progress = Math.min(elapsed / detectionLatency, 1);
-      const confVal = Math.round(confidence * 100 * progress);
-      document.getElementById('conf-bar').style.width = confVal + '%';
-      document.getElementById('conf-val').textContent = confVal + '%';
-
       if (elapsed >= detectionLatency && detectedSign !== currentDetected) {
         currentDetected = detectedSign;
-        document.getElementById('detected-sign').textContent = detectedSign;
-        document.getElementById('detected-sign').style.textShadow = `0 0 30px var(--neon)`;
 
         if (outputMode === 'phrase') {
           addWord(detectedSign);
@@ -1776,7 +1525,8 @@ function onResults(results) {
           if (window.speechSynthesis) {
             window.speechSynthesis.cancel();
             const utt = new SpeechSynthesisUtterance(detectedSign);
-            utt.rate = 1; window.speechSynthesis.speak(utt);
+            utt.rate = 1;
+            window.speechSynthesis.speak(utt);
           }
         }
       }
@@ -1784,9 +1534,10 @@ function onResults(results) {
       stableSign = detectedSign;
       stableStart = now;
     }
-  } else {
-    document.getElementById('conf-bar').style.width = '0%';
-    document.getElementById('conf-val').textContent = '0%';
+  } else if (confidence < 0.75) {
+    // Reset stable detection for unclear signs
+    stableSign = '';
+    stableStart = 0;
   }
 }
 
