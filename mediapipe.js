@@ -29,6 +29,85 @@ let predictionWindow = [];
  *   onReady()
  *   onError(err)
  */
+// onSign: (sign, confidence) => {
+//   const detectedEl = document.getElementById('detected-sign');
+//   const confBar = document.getElementById('conf-bar');
+//   const confVal = document.getElementById('conf-val');
+//   const videoContainer = document.getElementById('video-container');
+
+//   const percent = Math.round(confidence * 100);
+
+//   // Always show confidence
+//   confBar.style.width = percent + '%';
+//   confVal.textContent = percent + '%';
+
+//   // 🔥 MAIN LOGIC
+//   if (confidence < 0.75) {
+//     detectedEl.textContent = '⚠️ Sign unclear — please repeat';
+//     videoContainer.classList.add('unclear');
+//   } else {
+//     detectedEl.textContent = sign;
+//     videoContainer.classList.remove('unclear');
+//   }
+// }
+
+// function handleSign(sign, confidence) {
+//   const detectedEl = document.getElementById('detected-sign');
+//   const confBar = document.getElementById('conf-bar');
+//   const confVal = document.getElementById('conf-val');
+//   const videoContainer = document.getElementById('video-container');
+
+//   const percent = Math.round(confidence * 100);
+
+//   // Always show confidence
+//   confBar.style.width = percent + '%';
+//   confVal.textContent = percent + '%';
+
+//   // Threshold logic
+//   if (confidence < 0.75) {
+//     detectedEl.textContent = 'Sign unclear — please repeat';
+
+//     // Add visual alert
+//     videoContainer.classList.add('unclear');
+
+//   } else {
+//     detectedEl.textContent = sign;
+
+//     // Remove alert
+//     videoContainer.classList.remove('unclear');
+//   }
+// }
+/**
+ * Updates the UI based on sign detection results.
+ * Applies a 0.75 confidence threshold filter.
+ */
+function handleSign(sign, confidence) {
+  const detectedEl = document.getElementById('detected-sign');
+  const confBar = document.getElementById('conf-bar');
+  const confVal = document.getElementById('conf-val');
+  const videoContainer = document.querySelector('.video-container');
+
+  const percent = Math.round(confidence * 100);
+
+  // ✅ Step 6: Always show confidence
+  confBar.style.width = percent + '%';
+  confVal.textContent = percent + '%';
+
+  // ✅ Step 2 + 3 + 5 (MAIN LOGIC)
+  if (confidence < 0.5) {
+    detectedEl.textContent = '⚠️ Sign unclear — please repeat';
+    detectedEl.style.fontSize = '1.2rem';
+
+    // 🔥 Visual alert
+    videoContainer.classList.add('unclear-alert');
+
+  } else {
+    detectedEl.textContent = sign;
+    detectedEl.style.fontSize = '2.5rem';
+
+    videoContainer.classList.remove('unclear-alert');
+  }
+}
 export async function startCamera(videoEl, canvasEl, callbacks = {}) {
   try {
     hands = new Hands({ locateFile: f => CDN + f });
@@ -92,9 +171,9 @@ export function stopCamera(videoEl) {
   if (videoEl) videoEl.srcObject = null;
   predictionWindow = [];
 }
-
 function onResults(results, canvasEl, callbacks) {
   const ctx = canvasEl.getContext('2d');
+
   ctx.save();
   ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
   ctx.drawImage(results.image, 0, 0, canvasEl.width, canvasEl.height);
@@ -102,79 +181,113 @@ function onResults(results, canvasEl, callbacks) {
   const handCount = results.multiHandLandmarks?.length ?? 0;
   callbacks.onHandCount?.(handCount);
 
-  let bestSign = null;
-  let bestConf = 0;
-
   if (handCount > 0) {
-    results.multiHandLandmarks.forEach((landmarks, i) => {
+    results.multiHandLandmarks.forEach((landmarks) => {
 
-      // ==============================
-      // 👋 HELLO WAVE DETECTION
-      // ==============================
-      const wrist = landmarks[0];
+      // ✅ STEP 1: get prediction
+      const prediction = classifyHand(landmarks);
 
-      if (prevX !== null) {
-        const dx = wrist.x - prevX;
+      if (prediction) {
+        const { sign, confidence } = prediction;
 
-        if (dx > 0.04 && waveDirection !== 1) {
-          waveDirection = 1;
-          waveFrames++;
-        } else if (dx < -0.04 && waveDirection !== -1) {
-          waveDirection = -1;
-          waveFrames++;
-        }
+        // ✅ STEP 2,3,5: threshold logic
+        handleSign(sign, confidence);
+
+        // keep existing system
+        callbacks.onSign?.(sign, confidence);
       }
 
-      prevX = wrist.x;
-
-      const now = Date.now();
-      if (waveFrames > 6 && now - lastTriggerTime > 2000) {
-        waveFrames = 0;
-        waveDirection = 0;
-        lastTriggerTime = now;
-        callbacks.onSign?.('HELLO', 0.98);
-      }
-
-      // Draw skeleton and landmarks
-      drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {
-        color: i === 0 ? 'rgba(0,245,212,0.85)' : 'rgba(123,47,255,0.85)',
-        lineWidth: 2,
-      });
-
-      drawLandmarks(ctx, landmarks, {
-        color:     i === 0 ? '#00f5d4' : '#7b2fff',
-        fillColor: i === 0 ? 'rgba(0,245,212,0.25)' : 'rgba(123,47,255,0.25)',
-        lineWidth: 1,
-        radius: 4,
-      });
-
-      // Classification
-      const result = classifyHand(landmarks);
-      if (result && result.confidence > bestConf) {
-        bestSign = result.sign;
-        bestConf = result.confidence;
-      }
-
-      // Label
-      const label = results.multiHandedness[i]?.label ? results.multiHandedness[i].label + ' Hand' : 'Hand';
-      ctx.font = 'bold 13px DM Sans, sans-serif';
-      ctx.fillStyle = i === 0 ? '#00f5d4' : '#7b2fff';
-      ctx.fillText(label, wrist.x * canvasEl.width, wrist.y * canvasEl.height - 12);
     });
   }
 
   ctx.restore();
-
-  // Rolling window stability & emit stable sign
-  if (bestSign && bestSign !== '?') {
-    predictionWindow.push(bestSign);
-    if (predictionWindow.length > WINDOW_SIZE) predictionWindow.shift();
-  } else {
-    predictionWindow = [];
-  }
-
-  const stable = stableClassify(predictionWindow);
-  if (stable && bestConf > 0.75) {
-    callbacks.onSign?.(stable, bestConf);
-  }
 }
+//   const ctx = canvasEl.getContext('2d');
+//   ctx.save();
+//   ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+//   ctx.drawImage(results.image, 0, 0, canvasEl.width, canvasEl.height);
+
+//   const handCount = results.multiHandLandmarks?.length ?? 0;
+//   callbacks.onHandCount?.(handCount);
+
+//   let bestSign = null;
+//   let bestConf = 0;
+
+//   if (handCount > 0) {
+//     results.multiHandLandmarks.forEach((landmarks, i) => {
+
+//       // ==============================
+//       // 👋 HELLO WAVE DETECTION
+//       // ==============================
+//       const wrist = landmarks[0];
+
+//       if (prevX !== null) {
+//         const dx = wrist.x - prevX;
+
+//         if (dx > 0.04 && waveDirection !== 1) {
+//           waveDirection = 1;
+//           waveFrames++;
+//         } else if (dx < -0.04 && waveDirection !== -1) {
+//           waveDirection = -1;
+//           waveFrames++;
+//          waveDirection = 1;
+//           waveFrames++;
+//         } else if (dx < -0.04 && waveDirection !== -1) {
+//           waveDirection = -1;
+//           waveFrames++;
+//         }
+//       }
+
+//       prevX = wrist.x;
+
+//       const now = Date.now();
+//       if (waveFrames > 6 && now - lastTriggerTime > 2000) {
+//         waveFrames = 0;
+//         waveDirection = 0;
+//         lastTriggerTime = now;
+//         callbacks.onSign?.('HELLO', 0.98);
+//       }
+
+//       // Draw skeleton and landmarks
+//       drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {
+//         color: i === 0 ? 'rgba(0,245,212,0.85)' : 'rgba(123,47,255,0.85)',
+//         lineWidth: 2,
+//       });
+
+//       drawLandmarks(ctx, landmarks, {
+//         color:     i === 0 ? '#00f5d4' : '#7b2fff',
+//         fillColor: i === 0 ? 'rgba(0,245,212,0.25)' : 'rgba(123,47,255,0.25)',
+//         lineWidth: 1,
+//         radius: 4,
+//       });
+
+//       // Classification
+//       const result = classifyHand(landmarks);
+//       if (result && result.confidence > bestConf) {
+//         bestSign = result.sign;
+//         bestConf = result.confidence;
+//       }
+
+//       // Label
+//       const label = results.multiHandedness[i]?.label ? results.multiHandedness[i].label + ' Hand' : 'Hand';
+//       ctx.font = 'bold 13px DM Sans, sans-serif';
+//       ctx.fillStyle = i === 0 ? '#00f5d4' : '#7b2fff';
+//       ctx.fillText(label, wrist.x * canvasEl.width, wrist.y * canvasEl.height - 12);
+//     });
+//   }
+
+//   ctx.restore();
+
+//   // Rolling window stability & emit stable sign
+//   if (bestSign && bestSign !== '?') {
+//     predictionWindow.push(bestSign);
+//     if (predictionWindow.length > WINDOW_SIZE) predictionWindow.shift();
+//   } else {
+//     predictionWindow = [];
+//   }
+
+//   const stable = stableClassify(predictionWindow);
+//   if (stable && bestConf > 0.75) {
+//     callbacks.onSign?.(stable, bestConf);
+//   }
+// }
