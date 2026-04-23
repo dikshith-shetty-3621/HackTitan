@@ -1,40 +1,43 @@
+# OmniSign 🤲✨
 
-> **Sign Every Word.** — Real-time ASL to speech, bidirectional, in the browser.
+### **Sign Every Word — Real-time ASL to Speech in Your Browser**
 
-OmniSign translates American Sign Language into live speech using your webcam — no backend, no installs, no data leaves your device. It also teaches ASL to non-signers through a dedicated learn section.
+OmniSign translates **American Sign Language (ASL)** into live speech using your webcam — with **no backend, no installs, and complete privacy**.
 
-Built for **Haathon 2024** by Team OmniSign.
+It also enables non-signers to **learn ASL interactively** through a built-in learning system.
+
+🚀 Built for **Haathon 2024** by Team OmniSign
 
 ---
 
 ## ✨ Features
 
-| Feature | Description |
-|---|---|
-| 🎥 Live ASL Detection | MediaPipe Hands at up to 60 FPS, 2 hands simultaneously |
-| ⚡ Stable Sign Transitions | Adjustable latency buffer — shift between signs without false triggers |
-| 🗣️ Text to Speech | Web Speech API speaks detected signs instantly |
-| 🧱 Phrase Builder | Accumulate signs into full sentences, speak them at once |
-| 📚 Learn ASL | Full alphabet, numbers, greetings, common words — separate from live mode |
-| ↔️ Bidirectional | Signers can communicate outward; non-signers can learn inward |
-| 🔒 100% Private | All ML runs in-browser — zero server calls for video |
+| Feature                   | Description                                                      |
+| ------------------------- | ---------------------------------------------------------------- |
+| 🎥 Live ASL Detection     | MediaPipe Hands at up to 60 FPS, supports 2 hands simultaneously |
+| ⚡ Stable Sign Transitions | Adjustable latency buffer to avoid false detections              |
+| 🗣️ Text to Speech        | Converts detected signs into real-time voice output              |
+| 🧱 Phrase Builder         | Build full sentences and speak them                              |
+| 📚 Learn ASL              | Learn alphabets, numbers, greetings, and common signs            |
+| ↔️ Bidirectional          | Learn + communicate using the same system                        |
+| 🔒 100% Private           | Runs entirely in-browser — no data leaves your device            |
 
 ---
 
 ## 🚀 Getting Started
 
-No build step. No npm install. Just open the file.
+No setup needed. Just clone and run.
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/omnisign.git
 cd omnisign
-# Open index.html in your browser
 open index.html
 ```
 
-Or visit the live demo: **[omnisign.vercel.app]([https://omnisign.vercel.app](https://omnisign-gules.vercel.app/))**
+🌐 Live Demo:
+👉 https://omnisign-gules.vercel.app/
 
-> **Camera access required.** Allow camera permissions when prompted.
+> ⚠️ Camera access is required
 
 ---
 
@@ -42,15 +45,13 @@ Or visit the live demo: **[omnisign.vercel.app]([https://omnisign.vercel.app](ht
 
 ```
 omnisign/
-├── index.html              # Main app — self-contained, no build needed
+├── index.html
 ├── src/
-│   ├── classifier.js       # Hand landmark → ASL sign classifier
-│   ├── mediapipe.js        # Camera + MediaPipe Hands setup
-│   ├── phrase.js           # Phrase builder logic & preset phrases
-│   ├── speech.js           # Web Speech API wrapper
-│   └── learn-data.js       # Full ASL sign library (A-Z, 0-10, common)
-├── assets/
-│   └── signs/              # Sign reference images (optional)
+│   ├── classifier.js
+│   ├── mediapipe.js
+│   ├── phrase.js
+│   ├── speech.js
+│   └── learn-data.js
 └── README.md
 ```
 
@@ -59,73 +60,92 @@ omnisign/
 ## 🧠 How It Works
 
 ```
-Webcam Frame
+Webcam Input
     ↓
-MediaPipe Hands (WASM, in-browser)
-    → 21 hand landmarks per hand (x, y, z)
+MediaPipe Hands (21 landmarks)
     ↓
-classifier.js
-    → Fingertip extension geometry
-    → Rolling 8-frame majority vote for stability
+Custom Classifier Logic
     ↓
-Sign label + confidence
+Confidence Filtering + Stability System
     ↓
-Phrase Builder  →  Web Speech API
+Detected Sign
+    ↓
+Phrase Builder → Speech Output
 ```
 
-### Stability System
+### 🎯 Stability System
 
-Instead of firing on every frame (which causes rapid-fire junk output), OmniSign uses a **rolling prediction window** — a sign must be held consistently for a configurable duration (0.5s – 3s) before it's accepted. This lets you comfortably move between signs.
+Instead of detecting every frame, OmniSign uses a **rolling prediction window**, ensuring:
+
+* smoother transitions
+* fewer false detections
+* better real-world usability
 
 ---
 
 ## 🔧 Tech Stack
 
-- **[MediaPipe Hands](https://google.github.io/mediapipe/solutions/hands)** — hand landmark detection
-- **[Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API)** — text to speech
-- **Vanilla JS / HTML / CSS** — no framework, no bundler
-- **CSS glassmorphism + particle canvas** — custom visual system
+* MediaPipe Hands
+* Web Speech API
+* Vanilla JavaScript (No frameworks)
+* HTML + CSS (Glassmorphism UI)
+
+---
+
+## 📸 Screenshots
+
+### 🔤 Letters → Speech
+
+<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 11 PM" src="https://github.com/user-attachments/assets/f82448f4-4db7-4f66-9817-bd2b1b9577d4" />
+
+
+### 🔢 Numbers → Speech
+
+<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 22 PM" src="https://github.com/user-attachments/assets/129d4bfa-c8f2-4567-8a74-2e66f730f635" />
+
+
+### ✋ Dual-Hand Detection
+
+<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 30 PM" src="https://github.com/user-attachments/assets/9fdcd39d-196e-4126-bb77-22f7f8fa0ee5" />
+
+
+### 📚 Learn Mode
+
+<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 43 PM" src="https://github.com/user-attachments/assets/d3816a07-1853-4cae-944e-bc696a08cf35" />
+
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] Integrate [Fingerpose](https://github.com/andypotato/fingerpose) for rule-based sign matching
-- [ ] TFLite / ONNX model for full ASL vocabulary (100+ signs)
-- [ ] Speech-to-sign (reverse translation for non-signers to communicate back)
-- [ ] Sign GIFs in learn mode from lifeprint.com
-- [ ] PWA — install as an offline app
-- [ ] Multi-language TTS (Spanish, Hindi, etc.)
-
----
-
-## 📸 Screenshots
-<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 11 PM" src="https://github.com/user-attachments/assets/5e0842db-8628-4016-958e-eb2dfddd5b22" /># OmniSign 🤲
-Letters into Speech
-
-![Uploading Screenshot 2026-04-23 at 4.39.11 PM.png
-<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 22 PM" src="https://github.com/user-attachments/assets/26ccfc8e-ba7d-467c-b578-45d3048e8c22" />
-Numbers into speech 
-<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 30 PM" src="https://github.com/user-attachments/assets/26925d08-cd1f-4e37-9ab5-53dba787ef0e" />
-Both hands usable simultaneously
-<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 43 PM" src="https://github.com/user-attachments/assets/130aeb69-5365-41c6-a08b-c184f1b6f72a" />
-user can learn american sign language in our Website As well
-
-
-
-
+* [ ] Integrate Fingerpose for better accuracy
+* [ ] Add ML model (TFLite / ONNX) for full ASL vocabulary
+* [ ] Speech → Sign (reverse communication)
+* [ ] Add animated sign tutorials
+* [ ] Convert to PWA (mobile support)
+* [ ] Multi-language speech output
 
 ---
 
 ## 👥 Team
-Team Lead - Diganth N
-Members - Yashas A
-          Vijeth H J
-          Diganth A R
 
-Built in 24 hours at Hacthon by students o
+**Team Lead:** Diganth N
+**Members:**
+
+* Yashas A
+* Vijeth H J
+* Diganth A R
+
+⏱️ Built in 24 hours at Hackathon
+
+---
+
+## 🌍 Vision
+
+> Breaking communication barriers between signers and non-signers using AI.
 
 ---
 
 ## 📄 License
- free to use, fork, and build on.
+
+MIT License — free to use, modify, and build upon.
