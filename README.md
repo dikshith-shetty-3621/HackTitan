@@ -94,14 +94,14 @@ Instead of detecting every frame, OmniSign uses a **rolling prediction window**,
 
 ## 📸 Screenshots
 
-### 🔤 Letters → Speech
+
 
 
 
 https://github.com/user-attachments/assets/7ab56ea9-ca8b-440c-a5b4-fb3c08c80ce4
 
 
-
+### 🔤 Letters → Speech
 ### 🔢 Numbers → Speech
 ### ✋ Dual-Hand Detection
 ### 📚 Learn Mode
