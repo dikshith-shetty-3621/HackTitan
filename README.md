@@ -92,7 +92,7 @@ Instead of detecting every frame, OmniSign uses a **rolling prediction window**,
 
 ---
 
-## 📸 Screenshots
+## 📸 Demo Video 
 
 
 
