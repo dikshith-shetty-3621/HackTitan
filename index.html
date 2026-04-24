@@ -1789,7 +1789,7 @@ function onResults(results) {
     confidence = 0.95;
     specialOverride = true;
   } else if (detectHelpMe(results) && (now - lastSpecialPhraseAt > 1400)) {
-    detectedSign = 'HELP ME !';
+    detectedSign = 'Good Morning';
     confidence = 0.95;
     lastSpecialPhraseAt = now;
     specialLockUntil = now + 1600;
