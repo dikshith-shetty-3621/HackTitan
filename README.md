@@ -6,7 +6,7 @@ OmniSign translates **American Sign Language (ASL)** into live speech using your
 
 It also enables non-signers to **learn ASL interactively** through a built-in learning system.
 
-🚀 Built for **Haathon 2024** by Team OmniSign
+🚀 Built for **Hackathon 2026** by Team HackTitan
 
 ---
 
@@ -96,24 +96,16 @@ Instead of detecting every frame, OmniSign uses a **rolling prediction window**,
 
 ### 🔤 Letters → Speech
 
-<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 11 PM" src="https://github.com/user-attachments/assets/f82448f4-4db7-4f66-9817-bd2b1b9577d4" />
+
+
+https://github.com/user-attachments/assets/7ab56ea9-ca8b-440c-a5b4-fb3c08c80ce4
+
 
 
 ### 🔢 Numbers → Speech
-
-<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 22 PM" src="https://github.com/user-attachments/assets/129d4bfa-c8f2-4567-8a74-2e66f730f635" />
-
-
 ### ✋ Dual-Hand Detection
-
-<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 30 PM" src="https://github.com/user-attachments/assets/9fdcd39d-196e-4126-bb77-22f7f8fa0ee5" />
-
-
 ### 📚 Learn Mode
-
-<img width="1512" height="982" alt="Screenshot 2026-04-23 at 4 39 43 PM" src="https://github.com/user-attachments/assets/d3816a07-1853-4cae-944e-bc696a08cf35" />
-
-
+(Sorry For the Inconvinience That the Demo Video is muted but it in real website it converts sign into speech)
 ---
 
 ## 🗺️ Roadmap
@@ -137,6 +129,7 @@ Instead of detecting every frame, OmniSign uses a **rolling prediction window**,
 * Diganth A R
 
 ⏱️ Built in 24 hours at Hackathon
+KalpAIthon 2.0
 
 ---
 
